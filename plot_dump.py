@@ -6,35 +6,35 @@ import os
 
 fields = ['density', 'magnetic_field_strength', 'Temperature'] 
 
-for field in fields:
-    t = 0
-    axis = "z"
-    while True:
-        print(t)
-        try:
-            dirname = 'DD' + str(t).zfill(4)
-            print("trying to load ds")
-            ds = yt.load(dirname + '/' + 'data' + str(t).zfill(4))
-            print("loaded ds")
-            proj = yt.ProjectionPlot(ds, axis, field)
-            filename = dirname + field + axis + ".png"
-            proj.save('frames/' + filename)
-            proj_zoom = yt.ProjectionPlot(ds, axis, field, width = (100,'kpc'))
-            filename_zoom = dirname + field + axis + "zoom.png"
-            proj_zoom.save('frames/' + filename_zoom)
-            print("saving plot ...")
-            curr_dir = os.getcwd() 
-            os.chdir(curr_dir + '/frames')
-            if not os.path.exists(field):
-                os.mkdir(field) 
-            if not os.path.exists(field + "_zoom"):
-                os.mkdir(field + "_zoom")
-            os.rename(filename, field + '/' + filename)
-            os.rename(filename_zoom, field + '_zoom/' + filename_zoom)
-            os.chdir(curr_dir)
-            t += 1
-        except: 
-            break
+t = 0
+axis = "z"
+while True:
+    print(t)
+    try:
+        dirname = 'DD' + str(t).zfill(4)
+        print("trying to load ds")
+        ds = yt.load(dirname + '/' + 'DD' + str(t).zfill(4))
+        print("loaded ds")
+    except: 
+        break
+    for field in fields: 
+        proj = yt.ProjectionPlot(ds, axis, field, weight_field = "ones")
+        filename = dirname + field + axis + ".png"
+        proj.save('frames/' + filename)
+        proj_zoom = yt.ProjectionPlot(ds, axis, field, width = (100,'kpc'), weight_field="ones")
+        filename_zoom = dirname + field + axis + "zoom.png"
+        proj_zoom.save('frames/' + filename_zoom)
+        print("saving plot ...")
+        curr_dir = os.getcwd() 
+        os.chdir(curr_dir + '/frames')
+        if not os.path.exists(field):
+            os.mkdir(field) 
+        if not os.path.exists(field + "_zoom"):
+            os.mkdir(field + "_zoom")
+        os.rename(filename, field + '/' + filename)
+        os.rename(filename_zoom, field + '_zoom/' + filename_zoom)
+        os.chdir(curr_dir)
+    t += 1
 t_max = t
 print("trying particle plots . . .")
 for t in range(0,t_max):
@@ -42,9 +42,9 @@ for t in range(0,t_max):
     try:
         field = "density"
         dirname = 'DD' + str(t).zfill(4)
-        ds = yt.load(dirname + '/data' + str(t).zfill(4))
+        ds = yt.load(dirname + '/DD' + str(t).zfill(4))
         filename = dirname + field + axis + "_particles.png"
-        proj = yt.ProjectionPlot(ds, axis, "density", width = (100,'kpc'))
+        proj = yt.ProjectionPlot(ds, axis, "density", width = (100,'kpc'), weight_field = "ones")
         proj.annotate_particles((100,'kpc'))
         proj.save('frames/' + filename)
         curr_dir = os.getcwd() 
