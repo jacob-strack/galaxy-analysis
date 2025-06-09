@@ -8,6 +8,7 @@ fields = ['density', 'magnetic_field_strength', 'Temperature']
 
 t = 0
 axis = "z"
+'''
 while True:
     print(t)
     try:
@@ -35,7 +36,9 @@ while True:
         os.rename(filename_zoom, field + '_zoom/' + filename_zoom)
         os.chdir(curr_dir)
     t += 1
-t_max = t
+    '''
+t_max = 101
+part_type = 1
 print("trying particle plots . . .")
 for t in range(0,t_max):
     print(t)
@@ -44,15 +47,9 @@ for t in range(0,t_max):
         dirname = 'DD' + str(t).zfill(4)
         ds = yt.load(dirname + '/DD' + str(t).zfill(4))
         filename = dirname + field + axis + "_particles.png"
-        proj = yt.ProjectionPlot(ds, axis, "density", width = (100,'kpc'), weight_field = "ones")
-        proj.annotate_particles((100,'kpc'))
+        proj = yt.ProjectionPlot(ds, axis, "density", width = (200,'kpc'), weight_field = "ones")
+        proj.annotate_particles((200,'kpc'),ptype = part_type)
         proj.save('frames/' + filename)
-        curr_dir = os.getcwd() 
-        os.chdir(curr_dir + '/frames')
-        if not os.path.exists(field + "_particles"):
-            os.mkdir(field + "_particles") 
-        os.rename(filename, field + '_particles/' + filename)
-        os.chdir(curr_dir)
-    except: 
-        continue
+    except:
+        print("No particles found!")
 

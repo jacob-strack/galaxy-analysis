@@ -16,7 +16,7 @@ def make_sfr(filename):
     print(deposited) 
     print(ds.r[deposited].in_units("Msun"))
     print(ds.r[deposited].max())
-    return ds #probably wrong thing to do
+    return ds 
 
 def sfr_density(field, data): 
     return data["deposit", "formed_stars_sum_mass"].in_units("Msun") / data["cell_volume"].in_units("pc**3") 
