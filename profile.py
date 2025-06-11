@@ -185,6 +185,12 @@ class profile_compare:
             else:
                 self.hist1 = stats.binned_statistic_2d(r1, field1, ad1['ones'][mask1], bins = self.num_bins,range = [[0, max_x],[field_min,field_max]], statistic = 'count') 
                 self.hist2 = stats.binned_statistic_2d(r2, field2, ad2['ones'][mask2], bins = self.num_bins, range = [[0,max_x],[field_min, field_max]] ,statistic = 'count') 
+        if(self.x_bin == 'T'): 
+            #Temperature binning should be done in log 
+            T1 = np.log10(ad1["Temperature"])
+            T2 = np.log10(ad2["Temperature"])
+            self.hist1 = stats.binned_statistic_2d(T1, field1, ad1['ones'], bins = self.num_bins, range = [[0, np.log10(max_x)], [field_min,field_max]],statistic = 'count')
+            self.hist2 = stats.binned_statistic_2d(T2, field2, ad2['ones'], bins = self.num_bins, range = [[0, np.log10(max_x)], [field_min,field_max]],statistic = 'count')
         self.hist1[0][self.hist1[0] == 0] = np.nan
         self.hist2[0][self.hist2[0] == 0] = np.nan
 
@@ -201,6 +207,9 @@ class profile_compare:
         if(self.x_bin == 'r'): 
             ax[0].set_xlabel("r [kpc]")
             ax[1].set_xlabel("r [kpc]")
+        if(self.x_bin == 'T'): 
+            ax[0].set_xlabel("log(T) [K]")
+            ax[1].set_xlabel("log(T) [K]")
         if(self.log_y == True): 
             ax[0].set_ylabel("log(" + self.field + ") [" + self.units +']' )
             ax[1].set_ylabel("log(" + self.field + ") [" + self.units +']' )
