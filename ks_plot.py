@@ -4,7 +4,7 @@ import os
 
 def formed_stars(pfilter, data): 
     age = data.ds.current_time - data["all", "creation_time"]
-    filter = age.in_units("Myr") <= 50
+    filter = age.in_units("code_time") <= data.ds["dtDataDump"]
     return filter 
 
 def make_sfr(filename): 
@@ -16,7 +16,7 @@ def make_sfr(filename):
     print(deposited) 
     print(ds.r[deposited].in_units("Msun"))
     print(ds.r[deposited].max())
-    return ds #probably wrong thing to do
+    return ds 
 
 def sfr_density(field, data): 
     return data["deposit", "formed_stars_sum_mass"].in_units("Msun") / data["cell_volume"].in_units("pc**3") 
@@ -30,8 +30,11 @@ def ks_plot(filename, axis):
     plt.loglog()
     plt.savefig("test.png")
 
-def ks_plot_all(axis, lower_t, num):
+def ks_plot_all(axis, lower_t, num, lower_ind = 0, upper_ind = 0):
     plt.close('all')
+    if lower_ind == 0 and upper_ind == 0: 
+        lower_ind = lower_t 
+        upper_ind = lower_t + num - 1
     ans_dens = yt.YTArray([], "Msun/pc**2")
     ans_sfr = yt.YTArray([], "Msun/pc**2/yr")
     ans_color = np.array([])
@@ -54,31 +57,35 @@ def ks_plot_all(axis, lower_t, num):
         sfr = (upper_proj_fr["sfr_density"] - lower_proj_fr["sfr_density"]) / (ds_upper.current_time - ds_lower.current_time).in_units("yr") 
         column = ds_upper.proj("density", 2)
         column_fr = column.to_frb((1.0, "code_length"), 1024)
-        print(sfr.max().in_units("Msun/pc**2/yr"))
-        print(np.shape(sfr))
-        print(np.shape(sfr.flatten()))
         sfr_flat = sfr.in_units("Msun/pc**2/yr").flatten()
         dens_flat = column_fr["density"].in_units("Msun/pc**2").flatten()
         dens_pts = np.asarray(dens_flat)
         sfr_pts = np.asarray(sfr_flat) 
         sfr_pts = sfr_flat[np.where(sfr_flat > 0)]
         dens_pts = dens_flat[np.where(sfr_flat > 0)]
-        print("start append")
         ans_dens = np.append(ans_dens, dens_pts)
         ans_sfr = np.append(ans_sfr, sfr_pts)
         color_pts = np.ones_like(sfr_pts.d)*i
         ans_color = np.append(ans_color, color_pts)
-        print("end append")
     plt.scatter(ans_dens, ans_sfr, c = ans_color, cmap = 'jet', vmin = lower_t, vmax = lower_t + num - 1)
-    sorted_dens_pts = np.sort(np.log10(ans_dens))
-    sorted_sfr_pts = np.log10(ans_sfr[np.argsort(np.log10(ans_dens))])
-    coefficients = np.polyfit(sorted_dens_pts, sorted_sfr_pts, 1)
+    #mask = (ans_color > lower_ind) * (ans_color <= upper_ind)
+    sorted_dens_pts = np.sort((ans_dens))
+    sorted_sfr_pts = (ans_sfr[np.argsort((ans_dens))])
+    sorted_ans_color = ans_color[np.argsort(np.log10(ans_dens))]
+    coefficients = np.polyfit(np.log10(sorted_dens_pts.d), np.log10(sorted_sfr_pts.d), 1)
     trendline = np.poly1d(coefficients)
-    y_vals = trendline(sorted_dens_pts)
-    print(ans_color)
-    plt.plot(10**sorted_dens_pts, 10**y_vals, label = "n = " + str(np.round(coefficients[0],2)))
+    y_vals = trendline(np.log10(sorted_dens_pts.d))
+    #plt.scatter(sorted_dens_pts, sorted_sfr_pts, c = sorted_ans_color, cmap = 'jet', vmin = lower_t, vmax = lower_t + num - 1)
+    plt.plot(sorted_dens_pts.d, 10**y_vals, label = "n = " + str(np.round(coefficients[0],2)))
     plt.legend()
     plt.colorbar()
+    print(coefficients)
+    print(np.log10(sorted_dens_pts.d)) 
+    print(np.log10(sorted_sfr_pts.d))
+    print(np.log10(ans_dens))
+    print(np.log10(ans_sfr))
+    plt.ylabel(r"$\Sigma_{SFR}$")
+    plt.xlabel(r"$\Sigma$")
     plt.loglog()
     plt.savefig("test.png")
 
