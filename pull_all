@@ -1,0 +1,26 @@
+#!/bin/bash 
+
+if [ $# -eq 0 ]; 
+then
+    #List of machines to grab from 
+    machines=( "jstrack@teahupoo.physics.fsu.edu" "jstrack@nazare.physics.fsu.edu" "student42@astro4.physics.fsu.edu" ) 
+    for mach in "${machines[@]}"; do 
+        echo $mach
+        list=$(ssh $mach "find scratch/ -not -empty -type d -name "frames"") 
+        locs=($list)
+        for loc in "${locs[@]}"; do 
+            rsync -avz --remove-source-files -e ssh $mach:$loc/* /home/jstrack/plots/
+        done 
+    done
+fi
+if [ $# -eq 1 ]; 
+then
+        echo $1
+        list=$(ssh $1 "find scratch/ -not -empty -type d -name "frames"") 
+        locs=($list)
+        for loc in "${locs[@]}"; do 
+            rsync -avz --remove-source-files -e ssh $mach:$loc/* /home/jstrack/plots/
+        done 
+fi 
+
+
