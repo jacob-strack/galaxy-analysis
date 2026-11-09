@@ -1,10 +1,13 @@
 from starter import * 
 from yt.data_objects.particle_filters import add_particle_filter 
 import os 
+import scipy.stats as sp
+import matplotlib
 
 def formed_stars(pfilter, data): 
+    #filter for newly formed star particles
     age = data.ds.current_time - data["all", "creation_time"]
-    filter = age.in_units("code_time") <= data.ds["dtDataDump"]
+    filter = np.logical_and(age.in_units("code_time") <= data.ds["dtDataDump"], data["all","particle_type"] == 2)
     return filter 
 
 def make_sfr(filename): 
@@ -19,7 +22,8 @@ def make_sfr(filename):
     return ds 
 
 def sfr_density(field, data): 
-    return data["deposit", "formed_stars_sum_mass"].in_units("Msun") / data["cell_volume"].in_units("pc**3") 
+    print("wtf", data["cell_volume"].shape)
+    return data["deposit", "formed_stars_sum_mass"].in_units("Msun") / (data["cell_volume"].in_units("pc**3")*yt.YTQuantity(data.ds["dtDataDump"]*data.ds["TimeUnits"] / 3.154e7, "yr"))
 
 def ks_plot(filename, axis): 
     ds = make_sfr(filename)
@@ -89,13 +93,68 @@ def ks_plot_all(axis, lower_t, num, lower_ind = 0, upper_ind = 0):
     plt.loglog()
     plt.savefig("test.png")
 
-def sfr_proj_plot(axis, lower_t, num): 
+def sfr_proj_plot(axis, lower_t, num, center = [0.5, 0.5, 0.5]): 
     for i in range(lower_t, lower_t + num): 
         yt.add_particle_filter("formed_stars", function = formed_stars, filtered_type = "all", requires=["creation_time"])
         filename = "DD" + str(i).zfill(4) + "/DD" + str(i).zfill(4)
         ds = yt.load(filename) 
         ds.add_particle_filter("formed_stars")
         deposited = ds.add_deposited_particle_field(("formed_stars", "particle_mass"), method="sum")
-        ds.add_field(name=("gas", "sfr_density"), function=sfr_density, sampling_type="local", units="Msun/cm**3")
-        prj = yt.ProjectionPlot(ds, axis, "sfr_density", width = (100,"kpc"))
+        ds.add_field(name=("gas", "sfr_density"), function=sfr_density, sampling_type="local", units="Msun/cm**3/yr")
+        prj = yt.ProjectionPlot(ds, axis, "sfr_density", width = (200,"kpc"), center = center)
         prj.save()
+
+def sfr(field, data): 
+    return data["deposit", "formed_stars_sum_mass"].in_units("Msun") / yt.YTQuantity(data.ds["dtDataDump"]*data.ds["TimeUnits"] / 3.154e7, "yr")
+
+def make_sfr_2(filename): 
+    yt.add_particle_filter("formed_stars", function = formed_stars, filtered_type = "all", requires=["creation_time"])
+    ds = yt.load(filename) 
+    ds.add_particle_filter("formed_stars") 
+    deposited = ds.add_deposited_particle_field(("formed_stars", "particle_mass"), method = "sum")
+    ds.add_field(name=("gas", "sfr"), function=sfr, sampling_type="local", units="Msun/yr")
+    return ds 
+
+def sfr_r_profile(filename, center = [0.5, 0.5, 0.5]): 
+    ds = make_sfr_2(filename) 
+    ad = ds.all_data()
+    x = ad[("gas", "x")].in_units("cm") - yt.YTQuantity(center[0] * ds.length_unit, "cm")
+    y = ad[("gas", "y")].in_units("cm") - yt.YTQuantity(center[1] * ds.length_unit, "cm")
+    z = ad[("gas", "z")].in_units("cm") - yt.YTQuantity(center[2] * ds.length_unit, "cm")
+    r = np.sqrt(x**2 + y**2 + z**2).in_units("kpc") 
+    sfr, sfr_bins, vals = sp.binned_statistic(r, ad["sfr"], bins = 100, range = (0,30), statistic = "sum")
+    print(sfr)
+    return sfr, sfr_bins[:-1]
+
+def plot_sfr_r_profile(filename, center = [0.5, 0.5, 0.5]): 
+    arr, bins = sfr_r_profile(filename, center) 
+    plt.plot(bins, arr)
+    plt.xlabel("r [kpc]") 
+    plt.ylabel("SFR [Msun/yr]")
+    plt.savefig("sfr_r_profile.png")
+
+def plot_sfr_r_profile_time_series(t_start, t_end, center = [0.5, 0.5, 0.5]): 
+    jet = plt.get_cmap('jet')
+    cNorm = matplotlib.colors.Normalize(vmin = 0, vmax = t_end-t_start) 
+    scalarMap = plt.cm.ScalarMappable(norm=cNorm, cmap=jet)
+    for t in range(t_start, t_end): 
+        filename = "DD" + str(t).zfill(4) + "/DD" + str(t).zfill(4)
+        this_sfr, this_bins = sfr_r_profile(filename, center) 
+        plt.semilogy(this_bins, this_sfr, color = scalarMap.to_rgba(t))
+        plt.xlabel("r [kpc]")
+        plt.ylabel("SFR [Msun/yr]")
+        plt.savefig("sfr_r_profile_time_series.png")
+
+def plot_sfr_r_profile_comp(initial_t,timestep, directory, center = [0.5, 0.5, 0.53]): 
+    for t in range(initial_t, timestep):
+        filename = "DD" + str(t).zfill(4) + "/DD" + str(t).zfill(4)
+        arr, bins = sfr_r_profile(filename, center) 
+        arr2, bins2 = sfr_r_profile(directory + "/" + filename, center) 
+        plt.plot(bins, arr, label = "no halo") 
+        plt.plot(bins2, arr2, label = "halo") 
+        plt.xlabel('r [kpc]')
+        plt.ylabel('SFR [Msun/yr]')
+        plt.legend()
+        plt.savefig("DD" + str(t).zfill(4) + "_sfr_r_profile_comp.png")
+        plt.close('all')
+

@@ -2,12 +2,13 @@ from starter import *
 import os
 from starmassvstime import starmassvstime
 class starmasscomp: 
-    def __init__(self,num):
+    def __init__(self, num, directory):
         self.num = num
         self.no_halo = starmassvstime(self.num)
-        os.chdir("../7_level_tweaked_halo")
+        thisdir = os.getcwd()
+        os.chdir("../" + directory)
         self.halo = starmassvstime(self.num)
-        os.chdir("../7_level_tweaked")
+        os.chdir(thisdir)
     
     def plot(self): 
         plt.plot(self.halo.t_arr, self.halo.sm_arr, label = "halo")

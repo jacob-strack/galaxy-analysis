@@ -1,11 +1,13 @@
+import yt 
+import matplotlib.pyplot as plt 
+import numpy as np
 
-
-def meanvarvstime(fieldname, dumpnum): 
+def meanvarvstime(var, dumpnum, directory = "."): 
 	t_arr = [] 
 	var_arr = [] 
-	for i in range(0,num): 
+	for i in range(0,dumpnum): 
 	    filename ='DD' + str(i).zfill(4)
-	    ds = yt.load(filename + '/' + filename)
+	    ds = yt.load(directory + "/" + filename + '/' + filename)
 	    ad = ds.all_data()
 	    temp_var_arr = ad[var]
 	    mean_var = np.mean(temp_var_arr)
@@ -14,7 +16,7 @@ def meanvarvstime(fieldname, dumpnum):
 	    t_arr.append(t)
 	t_arr = np.array(t_arr)
 	var_arr = np.array(var_arr)
-	return plt.plot(t_arr, var_arr)
+	return (t_arr, var_arr)
 
 def starmassvstime(fieldname, dumpnum): 
 	ts = yt.load("DD001?/DD????")
